@@ -1,31 +1,25 @@
 
-import { useState, useRef, useCallback } from 'react';
-import { Upload, Download, Sparkles, ArrowRight, Image as ImageIcon, Zap } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useCallback } from 'react';
+import { Sparkles, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { removeBackground, loadImage } from '@/lib/backgroundRemover';
+import UploadArea from '@/components/UploadArea';
+import ProcessingStatus from '@/components/ProcessingStatus';
+import ImageComparison from '@/components/ImageComparison';
+import DownloadOptions from '@/components/DownloadOptions';
 
 const Index = () => {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleFiles = useCallback(async (files: FileList) => {
-    const file = files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload a valid image file');
-      return;
-    }
-
+  const handleFileSelect = useCallback(async (file: File) => {
     const imageUrl = URL.createObjectURL(file);
     setOriginalImage(imageUrl);
     setProcessedImage(null);
+    setError(null);
 
     setIsProcessing(true);
     try {
@@ -37,43 +31,18 @@ const Index = () => {
       toast.success('Background removed successfully!');
     } catch (error) {
       console.error('Error processing image:', error);
-      toast.error('Failed to remove background. Please try again.');
+      const errorMessage = 'Failed to remove background. Please try again with a different image.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
   }, []);
 
-  const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(e.dataTransfer.files);
-    }
-  }, [handleFiles]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      handleFiles(e.target.files);
-    }
-  };
-
-  const downloadImage = () => {
-    if (!processedImage) return;
-    const link = document.createElement('a');
-    link.href = processedImage;
-    link.download = 'background-removed.png';
-    link.click();
+  const handleReset = () => {
+    setOriginalImage(null);
+    setProcessedImage(null);
+    setError(null);
   };
 
   return (
@@ -116,172 +85,32 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Upload Area */}
-        {!originalImage && (
-          <Card className="max-w-3xl mx-auto bg-gray-900/50 backdrop-blur-xl border-gray-800/50 shadow-2xl">
-            <CardContent className="p-12">
-              <div
-                className={`border-2 border-dashed rounded-2xl p-16 text-center transition-all duration-300 ${
-                  dragActive 
-                    ? 'border-purple-400 bg-purple-400/10 scale-105' 
-                    : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/30'
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                <div className="mb-8">
-                  <div className="mx-auto w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-6">
-                    <Upload className="w-10 h-10 text-white" />
-                  </div>
-                  <h3 className="text-3xl font-semibold text-white mb-4">
-                    {dragActive ? 'Drop your image here' : 'Upload your image'}
-                  </h3>
-                  <p className="text-gray-400 text-lg mb-8">
-                    Drag and drop your image or click to browse
-                  </p>
-                </div>
-                <Button 
-                  onClick={() => fileInputRef.current?.click()}
-                  size="lg"
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 px-12 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                >
-                  Choose Image
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleInputChange}
-                  className="hidden"
-                />
-                <p className="text-sm text-gray-500 mt-6">
-                  Supports JPG, PNG, WebP and other common formats
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Main Content Area */}
+        <div className="space-y-12">
+          {/* Upload Area - Show when no image is selected */}
+          {!originalImage && (
+            <UploadArea onFileSelect={handleFileSelect} isProcessing={isProcessing} />
+          )}
 
-        {/* Image Processing Area */}
-        {originalImage && (
-          <div className="max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-8">
-              {/* Original Image */}
-              <Card className="bg-gray-900/50 backdrop-blur-xl border-gray-800/50 shadow-2xl">
-                <CardContent className="p-8">
-                  <div className="flex items-center gap-3 mb-6">
-                    <ImageIcon className="w-6 h-6 text-gray-300" />
-                    <h3 className="text-xl font-semibold text-white">Original Image</h3>
-                  </div>
-                  <div className="aspect-square bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700/50">
-                    <img 
-                      src={originalImage} 
-                      alt="Original" 
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Processing Status - Show when processing */}
+          <ProcessingStatus 
+            isProcessing={isProcessing} 
+            error={error}
+          />
 
-              {/* Processed Image */}
-              <Card className="bg-gray-900/50 backdrop-blur-xl border-gray-800/50 shadow-2xl">
-                <CardContent className="p-8">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
-                      <Sparkles className="w-4 h-4 text-white" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-white">Background Removed</h3>
-                  </div>
-                  <div className="aspect-square bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700/50 relative">
-                    {isProcessing ? (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-center">
-                          <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-6"></div>
-                          <p className="text-gray-300 text-lg">Processing your image...</p>
-                          <p className="text-gray-500 text-sm mt-2">This may take a moment</p>
-                        </div>
-                      </div>
-                    ) : processedImage ? (
-                      <img 
-                        src={processedImage} 
-                        alt="Processed" 
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-gray-500">
-                        <div className="text-center">
-                          <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <ArrowRight className="w-6 h-6" />
-                          </div>
-                          <p>Processed image will appear here</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          {/* Image Comparison - Show when images are ready */}
+          {originalImage && processedImage && !isProcessing && (
+            <ImageComparison
+              originalImage={originalImage}
+              processedImage={processedImage}
+              onReset={handleReset}
+            />
+          )}
 
-            {/* Action Buttons */}
-            <div className="flex justify-center gap-6 mt-12">
-              <Button
-                onClick={() => {
-                  setOriginalImage(null);
-                  setProcessedImage(null);
-                }}
-                variant="outline"
-                size="lg"
-                className="bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700/50 hover:text-white px-8 py-3 rounded-xl"
-              >
-                Upload New Image
-              </Button>
-              {processedImage && (
-                <Button
-                  onClick={downloadImage}
-                  size="lg"
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border-0 px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  Download Result
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Features */}
-        <div className="mt-24 grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <Card className="bg-gray-900/30 backdrop-blur-xl border-gray-800/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Sparkles className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-4">AI-Powered Precision</h3>
-              <p className="text-gray-400 leading-relaxed">Advanced machine learning algorithms ensure pixel-perfect background removal with professional quality results.</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-900/30 backdrop-blur-xl border-gray-800/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Zap className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-4">Lightning Fast</h3>
-              <p className="text-gray-400 leading-relaxed">Get your processed images in seconds, not minutes. Optimized for speed without compromising quality.</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-900/30 backdrop-blur-xl border-gray-800/50 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Download className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-4">Completely Free</h3>
-              <p className="text-gray-400 leading-relaxed">No watermarks, no registration, no hidden fees. Professional-grade background removal, absolutely free.</p>
-            </CardContent>
-          </Card>
+          {/* Download Options - Show when processing is complete */}
+          {processedImage && !isProcessing && (
+            <DownloadOptions processedImage={processedImage} />
+          )}
         </div>
       </div>
     </div>
