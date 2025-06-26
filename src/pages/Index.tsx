@@ -1,13 +1,15 @@
 
 import { useState, useCallback } from 'react';
-import { Sparkles, Zap } from 'lucide-react';
+import { Sparkles, Zap, BarChart3 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { removeBackground, loadImage } from '@/lib/backgroundRemover';
+import { apiKeyManager } from '@/lib/apiKeyManager';
 import UploadArea from '@/components/UploadArea';
 import ProcessingStatus from '@/components/ProcessingStatus';
 import ImageComparison from '@/components/ImageComparison';
 import DownloadOptions from '@/components/DownloadOptions';
+import ApiUsageStats from '@/components/ApiUsageStats';
 
 const Index = () => {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
@@ -23,17 +25,28 @@ const Index = () => {
 
     setIsProcessing(true);
     try {
-      toast.info('Processing your image... This may take a moment');
-      const imageElement = await loadImage(file);
-      const resultBlob = await removeBackground(imageElement);
+      toast.info('Processing your image with professional AI...');
+      const resultBlob = await removeBackground(file);
       const resultUrl = URL.createObjectURL(resultBlob);
       setProcessedImage(resultUrl);
       toast.success('Background removed successfully!');
     } catch (error) {
       console.error('Error processing image:', error);
-      const errorMessage = 'Failed to remove background. Please try again with a different image.';
+      let errorMessage = 'Failed to remove background. Please try again.';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       setError(errorMessage);
       toast.error(errorMessage);
+      
+      // If it's a quota error, try again with next key
+      if (errorMessage.includes('quota') || errorMessage.includes('Switching')) {
+        toast.info('Trying with different API key...');
+        setTimeout(() => handleFileSelect(file), 1000);
+        return;
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -67,23 +80,27 @@ const Index = () => {
             </h1>
           </div>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed mb-8">
-            Professional AI-powered background removal for your images. 
-            Experience precision, speed, and elegance in every edit.
+            Professional AI-powered background removal using Remove.bg API. 
+            Experience precision, speed, and elegance with smart API rotation.
           </p>
           <div className="flex items-center justify-center gap-4">
             <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 border-purple-500/30">
               <Zap className="w-3 h-3 mr-1" />
-              Instant Processing
+              Remove.bg API
             </Badge>
             <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 border-blue-500/30">
               <Sparkles className="w-3 h-3 mr-1" />
-              AI-Powered
+              Smart Rotation
             </Badge>
             <Badge variant="secondary" className="bg-green-500/20 text-green-300 border-green-500/30">
-              No Registration
+              <BarChart3 className="w-3 h-3 mr-1" />
+              5x Capacity
             </Badge>
           </div>
         </div>
+
+        {/* API Usage Stats */}
+        <ApiUsageStats />
 
         {/* Main Content Area */}
         <div className="space-y-12">

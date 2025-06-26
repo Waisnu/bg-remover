@@ -21,11 +21,11 @@ const ProcessingStatus = ({ isProcessing, error, onComplete }: ProcessingStatusP
     }
 
     const steps = [
-      { text: 'Loading AI model...', duration: 2000 },
-      { text: 'Analyzing image...', duration: 1500 },
-      { text: 'Detecting subjects...', duration: 2000 },
-      { text: 'Removing background...', duration: 1500 },
-      { text: 'Finalizing result...', duration: 1000 }
+      { text: 'Selecting optimal API key...', duration: 800 },
+      { text: 'Uploading image to Remove.bg...', duration: 1500 },
+      { text: 'AI analyzing image composition...', duration: 2000 },
+      { text: 'Processing background removal...', duration: 2500 },
+      { text: 'Downloading processed image...', duration: 1200 }
     ];
 
     let currentStep = 0;
@@ -37,7 +37,7 @@ const ProcessingStatus = ({ isProcessing, error, onComplete }: ProcessingStatusP
         const targetProgress = ((currentStep + 1) / steps.length) * 100;
         
         const progressInterval = setInterval(() => {
-          currentProgress += 2;
+          currentProgress += 3;
           setProgress(Math.min(currentProgress, targetProgress));
           
           if (currentProgress >= targetProgress) {
@@ -45,7 +45,7 @@ const ProcessingStatus = ({ isProcessing, error, onComplete }: ProcessingStatusP
             currentStep++;
             setTimeout(updateStatus, 100);
           }
-        }, 50);
+        }, 40);
       } else {
         setProgress(100);
         setStatus('Complete!');
@@ -71,12 +71,19 @@ const ProcessingStatus = ({ isProcessing, error, onComplete }: ProcessingStatusP
               <CheckCircle className="w-8 h-8 text-green-500" />
             )}
             <h3 className="text-2xl font-semibold text-white">
-              {error ? 'Processing Failed' : isProcessing ? 'Processing Image' : 'Complete'}
+              {error ? 'Processing Failed' : isProcessing ? 'Processing with Remove.bg' : 'Complete'}
             </h3>
           </div>
           
           {error ? (
-            <p className="text-red-400 mb-4">{error}</p>
+            <div className="space-y-3">
+              <p className="text-red-400 mb-4">{error}</p>
+              {error.includes('quota') && (
+                <p className="text-sm text-yellow-400">
+                  💡 Don't worry! We're automatically switching to the next API key.
+                </p>
+              )}
+            </div>
           ) : (
             <>
               <p className="text-gray-300 mb-6">{status}</p>
