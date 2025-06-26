@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -37,19 +38,12 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -99,5 +93,27 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Noise texture effect */
+.bg-noise {
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+  background-size: 400px 400px, 300px 300px, 200px 200px;
+  animation: noise 8s infinite;
+}
+
+@keyframes noise {
+  0%, 100% { 
+    background-position: 0% 0%, 25% 25%, 50% 50%; 
+  }
+  33% { 
+    background-position: 25% 25%, 50% 50%, 75% 75%; 
+  }
+  66% { 
+    background-position: 50% 50%, 75% 75%, 0% 100%; 
   }
 }
